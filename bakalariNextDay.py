@@ -3,30 +3,46 @@
 import requests
 import datetime
 import re
+import json
+import os.path
 
 class Bakalari: # Trida pro pristup k API bakalaru
     
     
-    def __init__(self, login, password, adresa): # Argumenty jsou string s prihlasovacim jmenem, string s heslem a string s url adresou bakalaru skoly. Zadane udaje se vyuziji pri ziskavani tokenu
+    def __init__(self, login, adresa): # Login argument je dict s uzivatelskym jmenem a heslem nebo tokenem, a adresa je url bakalaru skoly. Zadane udaje se vyuziji pri ziskavani tokenu
         
         # Odstrani prebytecny text z adresy a prida zpatky https protokol a /api endpoint
         adresa = re.sub(r"(https?:\/\/)|(\/login)|(\/$)", "", adresa)
         self.adresa = f"https://{adresa}/api"
         
-        prihlasovaciUdaje = {
-            "client_id": "ANDR",
-            "grant_type": "password",
-            "username": login,
-            "password": password
-        }
+        if "token" in login:
+            self.token = login["token"]
+        else:
+            prihlasovaciUdaje = {
+                "client_id": "ANDR",
+                "grant_type": "password",
+                "username": login["username"],
+                "password": login["password"]
+            }
+            
+            # Ziska token ze serveru bakalaru
+            self.token = requests.post(
+                self.adresa + "/login",
+                headers={"Content-type": "application/x-www-form-urlencoded"},
+                data=prihlasovaciUdaje
+            ).json().get("access_token")
+        
+        # Ziska informace o prihlasenem uzivateli
+        userdata = requests.get(
+            self.adresa + "/3/user",
+            headers={"Content-type": "application/x-www-form-urlencoded", "Authorization": f"Bearer {self.token}"}
+        )
 
-        # Ziska token ze serveru bakalaru
-        self.token = requests.post(
-            self.adresa + "/login",
-            headers={"Content-type": "application/x-www-form-urlencoded"},
-            data=prihlasovaciUdaje
-        ).json().get("access_token")
-    
+        # Pokud jsou prihlasovaci udaje nebo token neplatny tak se program ukonci
+        if userdata.status_code == 401:
+            print("Neplatne prihlasovaci udaje")
+            quit()
+        self.userdata = userdata.json()
     
     def rozvrh(self): # Vraci json s rozvrhem a vytvori promenou schedule se stejnym obsahem
         
@@ -99,16 +115,34 @@ class SkolniTyden(): # Trida pro zpracovavani json z bakalaru
         return([pridat, odebrat])
 
 def main():
-    # Ziskani udaju
-    jmeno = input("Prihlasovaci jmeno: ")
-    heslo = input("Heslo: ")
-    adresa = input("URL adresa bakalaru skoly: ")
+
+    # Zkontroluje existenci souboru bakalari-next-day.json a precte ho, pokud soubor neexistuje tak ho vytvori
+    if os.path.isfile("bakalari-next-day.json"):
+        file = open("bakalari-next-day.json", "r+")
+    else:
+        file = open("bakalari-next-day.json", "w+")
+    fileContents = file.read()
     
-    # Inicializace trid    
-    uzivatel = Bakalari(jmeno, heslo, adresa)
-    if uzivatel.token == None:
-        print("Neplatne prihlasovaci udaje")
-        quit()
+    if fileContents == "":
+        jmeno = input("Prihlasovaci jmeno: ")
+        heslo = input("Heslo: ")
+        adresa = input("URL adresa bakalaru skoly: ")
+        
+        uzivatel = Bakalari({"username": jmeno, "password": heslo}, adresa)
+
+        print("")
+        options = input("Moznosti ulozeni prihlaseni: \n1) Ulozit token a adresu\n2) Ulozit jmeno, heslo a adresu\n3) Nic neukladat\n")
+        
+        # Ulozi zadana data do souboru
+        if options == "1":
+            json.dump({"token": uzivatel.token, "url": adresa}, file)
+        elif options == "2":
+            json.dump({"username": jmeno, "password": heslo, "url": adresa}, file)
+    else:
+        # Obsah souboru pouzije pro prihlaseni
+        fileContentsJson = json.loads(fileContents)
+        uzivatel = Bakalari(fileContentsJson, fileContentsJson["url"])
+    
     tyden = SkolniTyden(uzivatel.rozvrh())
     
     # Pokud neni zitra vikend, zobrazi se co si na zitrek vzit a co vyndat
@@ -117,6 +151,8 @@ def main():
         naZitra = tyden.vzitNa(zitra)
         
         # Odpoved
+        print("")
+        print(f"Uzivatel: {uzivatel.userdata['FullName']}")
         print("")
         print ("Do tasky si pridej: \n")
         for predmet in naZitra[0]:
@@ -130,6 +166,8 @@ def main():
             print (predmet)
     else:
         print ("Zitra je vikend :)")
+    
+    file.close()
 
 main()
 
