@@ -4,9 +4,9 @@
   
   Co si na zítra přidat a co z tašky vyndat podle Bakalářů.
   
-  ![GitHub](https://img.shields.io/github/license/kokolem/bakalari-next-day)
-  ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/kokolem/bakalari-next-day)
-  ![GitHub last commit](https://img.shields.io/github/last-commit/kokolem/bakalari-next-day)
+  ![GitHub](https://img.shields.io/github/license/Davr1/bakalari-next-day)
+  ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/Davr1/bakalari-next-day)
+  ![GitHub last commit](https://img.shields.io/github/last-commit/Davr1/bakalari-next-day)
   ![Support <3](https://kokolem.github.io/LGBT-friendly-rainbow.svg)
   
 </div>
