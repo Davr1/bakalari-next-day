@@ -98,32 +98,38 @@ class SkolniTyden(): # Trida pro zpracovavani json z bakalaru
         
         return([pridat, odebrat])
 
-# Ziskani udaju
-jmeno = input("Prihlasovaci jmeno: ")
-heslo = input("Heslo: ")
-adresa = input("URL adresa bakalaru skoly: ")
+def main():
+    # Ziskani udaju
+    jmeno = input("Prihlasovaci jmeno: ")
+    heslo = input("Heslo: ")
+    adresa = input("URL adresa bakalaru skoly: ")
+    
+    # Inicializace trid    
+    uzivatel = Bakalari(jmeno, heslo, adresa)
+    if uzivatel.token == None:
+        print("Neplatne prihlasovaci udaje")
+        quit()
+    tyden = SkolniTyden(uzivatel.rozvrh())
+    
+    # Pokud neni zitra vikend, zobrazi se co si na zitrek vzit a co vyndat
+    zitra = datetime.datetime.today().weekday()+1
+    if zitra != 6 and zitra != 7:
+        naZitra = tyden.vzitNa(zitra)
+        
+        # Odpoved
+        print("")
+        print ("Do tasky si pridej: \n")
+        for predmet in naZitra[0]:
+            print(predmet)
+            # Za poslednim udelat prazdnou radku
+            if naZitra[0][len(naZitra[0])-1] == predmet:
+                print("")
+        
+        print ("A vyndej: \n")
+        for predmet in naZitra[1]:
+            print (predmet)
+    else:
+        print ("Zitra je vikend :)")
 
-# Inicializace trid    
-uzivatel = Bakalari(jmeno, heslo, adresa)
-tyden = SkolniTyden(uzivatel.rozvrh())
-
-# Pokud neni zitra vikend, zobrazi se co si na zitrek vzit a co vyndat
-zitra = datetime.datetime.today().weekday()+1
-if zitra != 6 and zitra != 7:
-    naZitra = tyden.vzitNa(zitra)
-
-    # Odpoved
-    print("")
-    print ("Do tasky si pridej: \n")
-    for predmet in naZitra[0]:
-        print(predmet)
-        # Za poslednim udelat prazdnou radku
-        if naZitra[0][len(naZitra[0])-1] == predmet:
-            print("")
-
-    print ("A vyndej: \n")
-    for predmet in naZitra[1]:
-        print (predmet)
-else:
-    print ("Zitra je vikend :)")
+main()
 
