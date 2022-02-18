@@ -87,12 +87,12 @@ class SkolniTyden(): # Trida pro zpracovavani json z bakalaru
     def vzitNa(self, den): # Vraci list se dvema listy, prvni obsahuje predmety co do tazky pridat, druhy co z ni vyndat
         
         # Pokud je pondeli, predchozi den je patek
-        if den == 0:
+        if den == 1:
             vcera = self.rozvrh[4]
         else:
-            vcera = self.rozvrh[den-1]
+            vcera = self.rozvrh[den-2]
         
-        dnes = self.rozvrh[den]
+        dnes = self.rozvrh[den-1]
         pridat = []
         odebrat = []
         
@@ -146,7 +146,7 @@ def main():
     tyden = SkolniTyden(uzivatel.rozvrh())
     
     # Pokud neni zitra vikend, zobrazi se co si na zitrek vzit a co vyndat
-    zitra = datetime.datetime.today().weekday()+1
+    zitra = datetime.datetime.today().isoweekday() % 7 + 1 # 1..7
     if zitra != 6 and zitra != 7:
         naZitra = tyden.vzitNa(zitra)
         
