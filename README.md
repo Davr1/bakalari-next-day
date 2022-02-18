@@ -21,6 +21,8 @@ Po spuštění se vás zeptá na tři údaje:
 Potom vám ukáže požadované informace. Mohou vypadat třeba takto:
 
 ```
+Uzivatel: Petr Novotný, 1.C
+
 Do tasky si pridej:
 
 Dějepis
