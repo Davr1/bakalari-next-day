@@ -15,8 +15,12 @@ class Bakalari: # Trida pro pristup k API bakalaru
         adresa = re.sub(r"(https?:\/\/)|(\/login)|(\/$)", "", adresa)
         self.adresa = f"https://{adresa}/api"
         
-        if "token" in login:
-            self.token = login["token"]
+        if "refreshtoken" in login:
+            prihlasovaciUdaje = {
+                "client_id": "ANDR",
+                "grant_type": "refresh_token",
+                "refresh_token": login["refreshtoken"]
+            }
         else:
             prihlasovaciUdaje = {
                 "client_id": "ANDR",
@@ -24,13 +28,15 @@ class Bakalari: # Trida pro pristup k API bakalaru
                 "username": login["username"],
                 "password": login["password"]
             }
-            
-            # Ziska token ze serveru bakalaru
-            self.token = requests.post(
-                self.adresa + "/login",
-                headers={"Content-type": "application/x-www-form-urlencoded"},
-                data=prihlasovaciUdaje
-            ).json().get("access_token")
+        
+        auth = requests.post(
+            self.adresa + "/login",
+            headers={"Content-type": "application/x-www-form-urlencoded"},
+            data=prihlasovaciUdaje
+        ).json()
+
+        self.refreshtoken = auth["refresh_token"]
+        self.token = auth["access_token"]
         
         # Ziska informace o prihlasenem uzivateli
         userdata = requests.get(
@@ -131,17 +137,22 @@ def main():
         uzivatel = Bakalari({"username": jmeno, "password": heslo}, adresa)
 
         print("")
-        options = input("Moznosti ulozeni prihlaseni: \n1) Ulozit token a adresu\n2) Ulozit jmeno, heslo a adresu\n3) Nic neukladat\n")
+        options = input("Moznosti ulozeni prihlaseni: \n1) Ulozit refresh token a adresu\n2) Ulozit jmeno, heslo a adresu\n3) Nic neukladat\n")
         
         # Ulozi zadana data do souboru
         if options == "1":
-            json.dump({"token": uzivatel.token, "url": adresa}, file)
+            json.dump({"refreshtoken": uzivatel.refreshtoken, "url": adresa}, file)
         elif options == "2":
             json.dump({"username": jmeno, "password": heslo, "url": adresa}, file)
     else:
         # Obsah souboru pouzije pro prihlaseni
         fileContentsJson = json.loads(fileContents)
         uzivatel = Bakalari(fileContentsJson, fileContentsJson["url"])
+        # Ulozi nove vygenerovany refresh token
+        if "refreshtoken" in fileContentsJson:
+            file.seek(0)
+            fileContentsJson["refreshtoken"] = uzivatel.refreshtoken
+            json.dump(fileContentsJson, file)
     
     tyden = SkolniTyden(uzivatel.rozvrh())
     
