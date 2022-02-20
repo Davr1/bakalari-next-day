@@ -18,6 +18,11 @@ Po spuštění se vás zeptá na tři údaje:
 - Heslo
 - URL adresa Bakalářů školy (například `https://skola.bakalari.cz/bakaweb/login`)
 
+Při prvním použití programu se vám zobrazí nabídka pro uložení přihlašovacích údajů:
+1. Uložení refresh tokenu a url - refresh token bude použit při každém přihlášení pro získání tokenu, a pokaždé se přepíše soubor `bakalari-next-day.json` s novým refresh tokenem
+2. Uložení jména, hesla a url - použije se normální způsob přihlášení stejně jako ve webové aplikaci, soubor se po prvním uložení už nebude přepisovat
+3. Nic neukládat - soubor zůstane prázdný
+
 Potom vám ukáže požadované informace. Mohou vypadat třeba takto:
 
 ```
