@@ -34,7 +34,7 @@ class Bakalari: # Trida pro pristup k API bakalaru
             headers={"Content-type": "application/x-www-form-urlencoded"},
             data=prihlasovaciUdaje
         ).json()
-
+        
         self.refreshtoken = auth["refresh_token"]
         self.token = auth["access_token"]
         
@@ -43,18 +43,19 @@ class Bakalari: # Trida pro pristup k API bakalaru
             self.adresa + "/3/user",
             headers={"Content-type": "application/x-www-form-urlencoded", "Authorization": f"Bearer {self.token}"}
         )
-
+        
         # Pokud jsou prihlasovaci udaje nebo token neplatny tak se program ukonci
         if userdata.status_code == 401:
             print("Neplatne prihlasovaci udaje")
             quit()
         self.userdata = userdata.json()
-    
+
+
     def rozvrh(self, den): # Vraci json s rozvrhem pro dany den a vytvori promenou schedule se stejnym obsahem
         
         # Zformatuje datum (YYYY-MM-DD) aby bylo pouzitelne v nasledujicim requestu
         datum = den.strftime('%Y-%m-%d')
-
+        
         # Ziskani rozvrhu
         schedule = requests.get(
             self.adresa + "/3/timetable/actual",
@@ -70,23 +71,24 @@ class Bakalari: # Trida pro pristup k API bakalaru
         
         self.schedule = []
         cisloDnu = den.weekday() # Rozsah 0..6
-
+        
         # Pokud je den vyssi nez 4 (je sobota nebo nedele) tak se snizi zpatky na 4
         if cisloDnu > 4:
             cisloDnu = 4
         
         # Vytvori list s rozvrhem pro kazdy den
         dny = list(den["Atoms"] for den in schedule["Days"])
-
+        
         # Prida nazvy hodin do self.schedule
         for hodina in dny[cisloDnu]:
             if hodina["SubjectId"] != None:
                 self.schedule.append(nazvyPredmetu[hodina["SubjectId"]])
-
+        
         return self.schedule
 
 
 def vzitNa(dnesniRozvrh, zitrejsiRozvrh): # Vraci list se dvema listy, prvni obsahuje predmety co do tazky pridat, druhy co z ni vyndat
+    
     pridat = []
     odebrat = []
     
@@ -110,7 +112,7 @@ def vzitNa(dnesniRozvrh, zitrejsiRozvrh): # Vraci list se dvema listy, prvni obs
 
 
 def main():
-
+    
     # Zkontroluje existenci souboru bakalari-next-day.json a precte ho, pokud soubor neexistuje tak ho vytvori
     if os.path.isfile("bakalari-next-day.json"):
         file = open("bakalari-next-day.json", "r+")
@@ -124,7 +126,7 @@ def main():
         adresa = input("URL adresa bakalaru skoly: ")
         
         uzivatel = Bakalari({"username": jmeno, "password": heslo}, adresa)
-
+        
         print("")
         options = input("Moznosti ulozeni prihlaseni: \n1) Ulozit refresh token a adresu\n2) Ulozit jmeno, heslo a adresu\n3) Nic neukladat\n")
         
@@ -133,12 +135,11 @@ def main():
             json.dump({"refreshtoken": uzivatel.refreshtoken, "url": adresa}, file)
         elif options == "2":
             json.dump({"username": jmeno, "password": heslo, "url": adresa}, file)
-        
     else:
         # Obsah souboru pouzije pro prihlaseni
         fileContentsJson = json.loads(fileContents)
         uzivatel = Bakalari(fileContentsJson, fileContentsJson["url"])
-
+        
         # Ulozi nove vygenerovany refresh token
         if "refreshtoken" in fileContentsJson:
             file.seek(0)
@@ -152,7 +153,7 @@ def main():
     if zitra.isoweekday() != 6 and zitra.isoweekday() != 7:
         dnesniRozvrh = uzivatel.rozvrh(dnes)
         zitrejsiRozvrh = uzivatel.rozvrh(zitra)
-
+        
         naZitra = vzitNa(dnesniRozvrh, zitrejsiRozvrh)
         
         # Odpoved
