@@ -50,75 +50,64 @@ class Bakalari: # Trida pro pristup k API bakalaru
             quit()
         self.userdata = userdata.json()
     
-    def rozvrh(self): # Vraci json s rozvrhem a vytvori promenou schedule se stejnym obsahem
+    def rozvrh(self, den): # Vraci json s rozvrhem pro dany den a vytvori promenou schedule se stejnym obsahem
         
-        # Ziska zitrejsi datum a zformatuje jej (YYYY-MM-DD) aby bylo pouzitelne v nasledujicim requestu
-        datum = (datetime.datetime.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+        # Zformatuje datum (YYYY-MM-DD) aby bylo pouzitelne v nasledujicim requestu
+        datum = den.strftime('%Y-%m-%d')
 
-        # Ziskani rozvrhu pro dane datum
-        self.schedule = requests.get(
+        # Ziskani rozvrhu
+        schedule = requests.get(
             self.adresa + "/3/timetable/actual",
             headers={"Content-type": "application/x-www-form-urlencoded", "Authorization": f"Bearer {self.token}"},
             params={"date": datum}
         ).json()
-        return self.schedule
-
-class SkolniTyden(): # Trida pro zpracovavani json z bakalaru
-
-
-    def __init__(self, schedule): # Argument je json s rozvrhem z Bakalaru
         
         # Ziska nazvy predmetu a vytvori dict key id:nazev pro kazdy predmet
         nazvyPredmetu = {}
         predmety = schedule["Subjects"]
         for predmet in predmety:
             nazvyPredmetu[predmet["Id"]] = predmet["Name"]
-
-        self.rozvrh = [] 
-        cisloDnu = 0      
         
-        # Pro kazdy den v rozvrhu se do self.rozvrh prida prazdne pole
+        self.schedule = []
+        cisloDnu = den.weekday() # Rozsah 0..6
+
+        # Pokud je den vyssi nez 4 (je sobota nebo nedele) tak se snizi zpatky na 4
+        if cisloDnu > 4:
+            cisloDnu = 4
+        
+        # Vytvori list s rozvrhem pro kazdy den
         dny = list(den["Atoms"] for den in schedule["Days"])
-        for denniRozvrh in dny:
-            self.rozvrh.append([])
-            
-            # Pro kazde pole (reprezentuje den ve skolnim rozvrhu) v self.rozvrh se do nej pridaji nazvy hodin, ktere v ten den jsou
-            for hodina in denniRozvrh:
-                if hodina["SubjectId"] != None:
-                    self.rozvrh[cisloDnu].append(nazvyPredmetu[hodina["SubjectId"]])
-            
-            cisloDnu += 1
+
+        # Prida nazvy hodin do self.schedule
+        for hodina in dny[cisloDnu]:
+            if hodina["SubjectId"] != None:
+                self.schedule.append(nazvyPredmetu[hodina["SubjectId"]])
+
+        return self.schedule
 
 
-    def vzitNa(self, den): # Vraci list se dvema listy, prvni obsahuje predmety co do tazky pridat, druhy co z ni vyndat
-        
-        # Pokud je pondeli, predchozi den je patek
-        if den == 1:
-            vcera = self.rozvrh[4]
-        else:
-            vcera = self.rozvrh[den-2]
-        
-        dnes = self.rozvrh[den-1]
-        pridat = []
-        odebrat = []
-        
-        # Pokud je hodina dnes a nebyla vcera, prida se do promene pridat, pokud byla vcera a neni dnes, prida se do promene odebrat
-        for hodina in dnes:
-            if hodina not in vcera:
-                pridat.append(hodina)
-        
-        for hodina in vcera:
-            if hodina not in dnes:
-                odebrat.append(hodina)
-        
-        # Filtrovani opakujicich se predmetu
-        pridat = set(pridat)
-        pridat = list(pridat)
-        
-        odebrat = set(odebrat)
-        odebrat = list(odebrat)
-        
-        return([pridat, odebrat])
+def vzitNa(dnesniRozvrh, zitrejsiRozvrh): # Vraci list se dvema listy, prvni obsahuje predmety co do tazky pridat, druhy co z ni vyndat
+    pridat = []
+    odebrat = []
+    
+    # Pokud je hodina dnes a nebyla vcera, prida se do promene pridat, pokud byla vcera a neni dnes, prida se do promene odebrat
+    for hodina in zitrejsiRozvrh:
+        if hodina not in dnesniRozvrh:
+            pridat.append(hodina)
+    
+    for hodina in dnesniRozvrh:
+        if hodina not in zitrejsiRozvrh:
+            odebrat.append(hodina)
+    
+    # Filtrovani opakujicich se predmetu
+    pridat = set(pridat)
+    pridat = list(pridat)
+    
+    odebrat = set(odebrat)
+    odebrat = list(odebrat)
+    
+    return([pridat, odebrat])
+
 
 def main():
 
@@ -144,22 +133,27 @@ def main():
             json.dump({"refreshtoken": uzivatel.refreshtoken, "url": adresa}, file)
         elif options == "2":
             json.dump({"username": jmeno, "password": heslo, "url": adresa}, file)
+        
     else:
         # Obsah souboru pouzije pro prihlaseni
         fileContentsJson = json.loads(fileContents)
         uzivatel = Bakalari(fileContentsJson, fileContentsJson["url"])
+
         # Ulozi nove vygenerovany refresh token
         if "refreshtoken" in fileContentsJson:
             file.seek(0)
             fileContentsJson["refreshtoken"] = uzivatel.refreshtoken
             json.dump(fileContentsJson, file)
     
-    tyden = SkolniTyden(uzivatel.rozvrh())
+    dnes = datetime.datetime.today()
+    zitra = datetime.datetime.today() + datetime.timedelta(days=1)
     
     # Pokud neni zitra vikend, zobrazi se co si na zitrek vzit a co vyndat
-    zitra = datetime.datetime.today().isoweekday() % 7 + 1 # 1..7
-    if zitra != 6 and zitra != 7:
-        naZitra = tyden.vzitNa(zitra)
+    if zitra.isoweekday() != 6 and zitra.isoweekday() != 7:
+        dnesniRozvrh = uzivatel.rozvrh(dnes)
+        zitrejsiRozvrh = uzivatel.rozvrh(zitra)
+
+        naZitra = vzitNa(dnesniRozvrh, zitrejsiRozvrh)
         
         # Odpoved
         print("")
