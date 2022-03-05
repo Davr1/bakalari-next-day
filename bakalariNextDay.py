@@ -54,7 +54,7 @@ class Bakalari: # Trida pro pristup k API bakalaru
     def rozvrh(self, den): # Vraci json s rozvrhem pro dany den a vytvori promenou schedule se stejnym obsahem
         
         # Zformatuje datum (YYYY-MM-DD) aby bylo pouzitelne v nasledujicim requestu
-        datum = den.strftime('%Y-%m-%d')
+        datum = den.strftime("%Y-%m-%d")
         
         # Ziskani rozvrhu
         schedule = requests.get(
@@ -108,7 +108,7 @@ def vzitNa(dnesniRozvrh, zitrejsiRozvrh): # Vraci list se dvema listy, prvni obs
     odebrat = set(odebrat)
     odebrat = list(odebrat)
     
-    return([pridat, odebrat])
+    return [pridat, odebrat]
 
 
 def main():
@@ -127,7 +127,7 @@ def main():
         
         uzivatel = Bakalari({"username": jmeno, "password": heslo}, adresa)
         
-        print("")
+        print()
         options = input("Moznosti ulozeni prihlaseni: \n1) Ulozit refresh token a adresu\n2) Ulozit jmeno, heslo a adresu\n3) Nic neukladat\n")
         
         # Ulozi zadana data do souboru
@@ -157,21 +157,18 @@ def main():
         naZitra = vzitNa(dnesniRozvrh, zitrejsiRozvrh)
         
         # Odpoved
-        print("")
-        print(f"Uzivatel: {uzivatel.userdata['FullName']}")
-        print("")
-        print ("Do tasky si pridej: \n")
+        print()
+        print(f"Uzivatel: {uzivatel.userdata['FullName']}\n")
+        print("Do tasky si pridej: \n")
         for predmet in naZitra[0]:
             print(predmet)
-            # Za poslednim udelat prazdnou radku
-            if naZitra[0][len(naZitra[0])-1] == predmet:
-                print("")
         
-        print ("A vyndej: \n")
+        print()
+        print("A vyndej: \n")
         for predmet in naZitra[1]:
-            print (predmet)
+            print(predmet)
     else:
-        print ("Zitra je vikend :)")
+        print("Zitra je vikend :)")
     
     file.close()
 
